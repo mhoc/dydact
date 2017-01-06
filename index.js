@@ -21,6 +21,7 @@ function Constructor(DynamoDB, Options) {
   // Assign all the functions this library exports
   this.DynamoDB = DynamoDB;
   this.Get = Get.bind(this);
+  this.Read = Get.bind(this);
   return this;
 }
 
@@ -28,50 +29,32 @@ function Constructor(DynamoDB, Options) {
 // READING
 // ========================================================================
 
-function Get(Arg1, Arg2, Arg3) {
+function Get(Arg1, Arg2, Arg3, Arg4) {
   if (_.isString(Arg1) && _.isArray(Arg2) && _.isFunction(Arg3)) {
     return BatchGetOnPrimaryIndex(Arg1, Arg2, Arg3);
   } else if (_.isString(Arg1) && _.isObject(Arg2) && _.isFunction(Arg3)) {
     return GetOnPrimaryIndex(Arg1, Arg2, Arg3);
+  } else if (_.isString(Arg1) && _.isString(Arg2) && _.isArray(Arg3) && _.isFunction(Arg4)) {
+    // Nothing is currently implemented on this branch 
+  } else if (_.isString(Arg1) && _.isString(Arg2) && _.isObject(Arg3) && _.isFunction(Arg4)) {
+    return Query(Arg1, Arg2, Arg3, Arg4);
   }
+  throw 'That method of calling Dydact is not supported';
 }
 
 function BatchGetOnPrimaryIndex(TableName, KVArray, Done) {
-  const chunked = this.Options.ResolvePages
-    ? _.chunk(KVArray, 100)
-    : KVArray;
-  async.map(chunked, function(chunk, chunkDone) {
-    this.DynamoDB.batchGetItem({
-      RequestItems: {
-        [TableName]: { Keys: chunk.map(marshalItem) },
-      },
-      ReturnConsumedCapacity: this.Options.ConsumedCapacity,
-    }, function(err, awsResponse) {
-      if (err) return chunkDone(err);
-      return chunkDone(null, {
-        results: awsResponse.Responses[TableName].map(unmarshalItem),
-        metadata: _.pick(awsResponse, [ 'ConsumedCapacity' ]),
-      });
-    });
-  }, function(err, results) {
+  this.DynamoDB.batchGetItem({
+    RequestItems: {
+      [TableName]: { Keys: KVArray.map(marshalItem) },
+    },
+    ReturnConsumedCapacity: this.Options.ConsumedCapacity,
+  }, (err, awsResponse) => {
     if (err) return Done(err);
-    // Combine the many results sets we might have gotten back.
-    const allResults = _(results).map(function(r) { return r.results }).flatten().value();
-    // Combine the metadata 
-    const metadata = {
-      ConsumedCapacity: _.reduce(results, function(accum, r) {
-        accum.CapacityUnits += r.metadata.ConsumedCapacity[0].CapacityUnits;
-        accum.Table.CapacityUnits += r.metadata.ConsumedCapacity[0].CapacityUnits;
-        return accum;
-      }, {
-        TableName: TableName,
-        CapacityUnits: 0,
-        Table: { CapacityUnits: 0 },
-      }),
-    };
-    // Add in the number of calls this call took.
-    metadata.DydactResolvedPages = { Count: chunked.length };
-    return Done(null, allResults, metadata);
+    const allResults = awsResponse.Responses[TableName].map(unmarshalItem);
+    if (!_.isEmpty(awsResponse.UnprocessedKeys)) {
+      awsResponse.UnprocessedKeys = awsResponse.UnprocessedKeys[TableName].Keys.map(unmarshalItem);
+    }
+    return Done(null, allResults, _.pick(awsResponse, [ 'ConsumedCapacity', 'UnprocessedKeys' ]))
   });
 }
 
@@ -80,18 +63,33 @@ function GetOnPrimaryIndex(TableName, KVObj, Done) {
     TableName: TableName,
     Key: marshalItem(KVObj),
     ReturnConsumedCapacity: this.Options.ConsumedCapacity,
-  }, function(err, resp) {
+  }, (err, resp) => {
     if (err) return Done(err);
     if (!resp.Item) return Done();
     return Done(null, unmarshalItem(resp.Item), _.pick(resp, [ 'ConsumedCapacity' ]));
   });
 }
 
+function Query(TableName, IndexName, KVObj, Done) {
+  this.DynamoDB.query({
+    TableName: TableName,
+    IndexName: IndexName,
+    KeyConditions: _.mapValues(KVObj, (v, k) => ({
+      ComparisonOperator: 'EQ',
+      AttributeValueList: [ marshal(v) ],
+    })),
+    ReturnConsumedCapacity: this.Options.ConsumedCapacity,
+  }, (err, awsResponse) => {
+    if (err) return Done(err);
+    const allResults = awsResponse.Items.map(unmarshalItem);
+    const meta = _.pick(awsResponse, [ 'ConsumedCapacity', 'LastEvaluatedKey' ]);
+    return Done(null, allResults, meta);
+  })
+}
+
 // ========================================================================
 // HELPERS
 // ========================================================================
-
-
 
 // ========================================================================
 // EXPORT

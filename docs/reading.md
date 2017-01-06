@@ -37,8 +37,6 @@ Get('Config', { key: 'database_url', stage: 'production' }, (err, item, metadata
 
 _Retrieve multiple items by partition key on the primary index of a single table. Backed by `DynamoDB.BatchGetItem`._
 
-_DynamoDB enforces a 16MB+100Key limit on this call. Dydact patches over this for you if `ResolvePages` is `true`. If you specify more than 100 keys, Dydact will chunk them and make multiple calls. If the response ever requires additional calls due to the 16MB limit, Dydact will resolve that and return a single response. If `ResolvePages` is `false`, Dydact will do neither of this for you and will simply return whatever AWS gives it._
-
 ```js
 Get(Table String, KVArray Array[Object[1]], ErrBack Function[3])
 Get('Users', [
@@ -56,8 +54,6 @@ Get('Users', [
 
 _Retrieve multiple items by partition and sort key on the primary index of a single table. Backed by `DynamoDB.BatchGetItem`._
 
-_DynamoDB enforces a 16MB+100Key limit on this call. Dydact patches over this for you if `ResolvePages` is `true`. If you specify more than 100 keys, Dydact will chunk them and make multiple calls. If the response ever requires additional calls due to the 16MB limit, Dydact will resolve that and return a single response. If `ResolvePages` is `false`, Dydact will do neither of this for you and will simply return whatever AWS gives it._
-
 ```js
 Get(Table String, KVArray Array[Object[2]], ErrBack Function[3])
 Get('Config', [
@@ -70,11 +66,31 @@ Get('Config', [
 - `item`: Array of unmarshaled DynamoDB response items. An empty array is returned if no results are found.
 - `metadata`: All the additional information DynamoDB gives you beside the item, in its original form.
 
-## Note
+## Multiple Tables
 
-_Dydact does not provide any wrapper for `DynamoDB.BatchGetItem` which spans multiple tables._
+_Dydact does not provide any wrapper for a call to `DynamoDB.BatchGetItem` which spans multiple tables._
 
-# Queries
+# GSI
 
 ## Partition Key | GSI
 
+_Retrieves multiple items by partition key on a configured GSI. Backed by `DynamoDB.Query`._
+
+```js
+Get(Table String, Index String, KVMap Object[1], ErrBack Function[3])
+Get('Users', 'company-index', {
+  companyId: '12345',
+}, (err, results, metadata) => {})
+```
+
+## Partition+Sort Key | GSI
+
+_Retrieves multiple items by partition and sort key on a configured GSI. Backed by `DynamoDB.Query`._
+
+```js
+Get(Table String, Index String, KVMap Object[2], ErrBack Function[3])
+Get('Users', 'company-location-index', {
+  companyId: '12345',
+  location: 'New York',
+}, (err, results, metadata) => {})
+```

@@ -16,7 +16,6 @@ You may also optionally specify some configuration parameters on setup.
 ```js
 const Dy = require('dydact')(DynamoDB, {
   ConsumedCapacity: true,
-  ResolvePages: false,
 })
 ```
 
@@ -26,9 +25,10 @@ If this is `true`, Dydact will request AWS to return the `ConsumedCapacity` (lev
 You may also specify a string here: either `"INDEXES"`, `"TOTAL"`, or `"NONE"`.
 This value will be returned in the `metadata` that each request sends back.
 
-- `ResolvePages`: defaults to `true`
+# Pagination Resolving
 
-If this is `true`, Dydact will resolve pagination for you by making multiple calls to DynamoDB, automatically assembling the complete response array. 
-This has an obvious performance impact, but is usually more helpful than it isn't.
+Dydact does not resolve pagination for you. This is primarily because DynamoDB has pretty high limits (100 keys or 16MB), so any app seriously butting up against that limit should probably be doing pagination itself. 
 
-If dydact ever needs to make additional calls to complete a request, this will be included in the `metadata` object returned, under the key `DydactResolvedPages: { Count: 2 }`.
+That being said, Dydact will help you. 
+
+- `UnprocessedKeys` is provided in the `metadata` result of any batch operations. It is formatted such that you can pass it directly to another batch call to get more keys.
