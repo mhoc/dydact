@@ -1,3 +1,4 @@
+const async = require('async');
 const _ = require('lodash');
 const marshal = require('dynamodb-marshaler').marshal;
 const marshalItem = require('dynamodb-marshaler').marshalItem;
@@ -27,10 +28,57 @@ function Constructor(DynamoDB, Options) {
 // READING
 // ========================================================================
 
-function Get(TableName, KVLookup, Done) {
+function Get(Arg1, Arg2, Arg3) {
+  if (_.isString(Arg1) && _.isArray(Arg2) && _.isFunction(Arg3)) {
+    return BatchGetOnPrimaryIndex(Arg1, Arg2, Arg3);
+  } else if (_.isString(Arg1) && _.isObject(Arg2) && _.isFunction(Arg3)) {
+    return GetOnPrimaryIndex(Arg1, Arg2, Arg3);
+  }
+}
+
+function BatchGetOnPrimaryIndex(TableName, KVArray, Done) {
+  const chunked = this.Options.ResolvePages
+    ? _.chunk(KVArray, 100)
+    : KVArray;
+  async.map(chunked, function(chunk, chunkDone) {
+    this.DynamoDB.batchGetItem({
+      RequestItems: {
+        [TableName]: { Keys: chunk.map(marshalItem) },
+      },
+      ReturnConsumedCapacity: this.Options.ConsumedCapacity,
+    }, function(err, awsResponse) {
+      if (err) return chunkDone(err);
+      return chunkDone(null, {
+        results: awsResponse.Responses[TableName].map(unmarshalItem),
+        metadata: _.pick(awsResponse, [ 'ConsumedCapacity' ]),
+      });
+    });
+  }, function(err, results) {
+    if (err) return Done(err);
+    // Combine the many results sets we might have gotten back.
+    const allResults = _(results).map(function(r) { return r.results }).flatten().value();
+    // Combine the metadata 
+    const metadata = {
+      ConsumedCapacity: _.reduce(results, function(accum, r) {
+        accum.CapacityUnits += r.metadata.ConsumedCapacity[0].CapacityUnits;
+        accum.Table.CapacityUnits += r.metadata.ConsumedCapacity[0].CapacityUnits;
+        return accum;
+      }, {
+        TableName: TableName,
+        CapacityUnits: 0,
+        Table: { CapacityUnits: 0 },
+      }),
+    };
+    // Add in the number of calls this call took.
+    metadata.DydactResolvedPages = { Count: chunked.length };
+    return Done(null, allResults, metadata);
+  });
+}
+
+function GetOnPrimaryIndex(TableName, KVObj, Done) {
   this.DynamoDB.getItem({
-    TableName,
-    Key: marshalItem(KVLookup),
+    TableName: TableName,
+    Key: marshalItem(KVObj),
     ReturnConsumedCapacity: this.Options.ConsumedCapacity,
   }, function(err, resp) {
     if (err) return Done(err);
@@ -38,6 +86,12 @@ function Get(TableName, KVLookup, Done) {
     return Done(null, unmarshalItem(resp.Item), _.pick(resp, [ 'ConsumedCapacity' ]));
   });
 }
+
+// ========================================================================
+// HELPERS
+// ========================================================================
+
+
 
 // ========================================================================
 // EXPORT

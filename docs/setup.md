@@ -30,3 +30,5 @@ This value will be returned in the `metadata` that each request sends back.
 
 If this is `true`, Dydact will resolve pagination for you by making multiple calls to DynamoDB, automatically assembling the complete response array. 
 This has an obvious performance impact, but is usually more helpful than it isn't.
+
+If dydact ever needs to make additional calls to complete a request, this will be included in the `metadata` object returned, under the key `DydactResolvedPages: { Count: 2 }`.
