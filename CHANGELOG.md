@@ -1,14 +1,18 @@
-# v0.0.3 (Unreleased)
+# v0.0.4 (Unreleased)
 
 - Updating documents
 
-# v0.0.2 (Unreleased)
+# v0.0.3 (Unreleased)
 
 - `Get(5)` --> Paginated GSI query 
 - `Insert(3)` --> Basic document insertion
 - `Create(.)` --> Alias for `Insert`
 - `Remove(3)` --> Basic delete item by primary key
 - `Delete(.)` --> Alias for `Remove`
+
+# v0.0.2
+
+- Revert lots of the ES2015 syntax to... not ES2015, in order to support Node 0.12.
 
 # v0.0.1
 

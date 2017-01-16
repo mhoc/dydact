@@ -43,16 +43,16 @@ function Get(Arg1, Arg2, Arg3, Arg4) {
 }
 
 function BatchGetOnPrimaryIndex(TableName, KVArray, Done) {
-  this.DynamoDB.batchGetItem({
-    RequestItems: {
-      [TableName]: { Keys: KVArray.map(marshalItem) },
-    },
-    ReturnConsumedCapacity: this.Options.ConsumedCapacity,
-  }, (err, awsResponse) => {
+  const RequestObject = { 
+    RequestItems: null,
+    ReturnConsumedCapacity: this.Options.ConsumedCapacity
+  };
+  RequestObject.RequestItems[TableName] = { Keys: _.map(KVArray, marshalItem) };
+  this.DynamoDB.batchGetItem(RequestObject, function(err, awsResponse) {
     if (err) return Done(err);
-    const allResults = awsResponse.Responses[TableName].map(unmarshalItem);
+    const allResults = _.map(awsResponse.Responses[TableName], unmarshalItem);
     if (!_.isEmpty(awsResponse.UnprocessedKeys)) {
-      awsResponse.UnprocessedKeys = awsResponse.UnprocessedKeys[TableName].Keys.map(unmarshalItem);
+      awsResponse.UnprocessedKeys = _.map(awsResponse.UnprocessedKeys[TableName], unmarshalItem);
     }
     return Done(null, allResults, _.pick(awsResponse, [ 'ConsumedCapacity', 'UnprocessedKeys' ]))
   });
@@ -62,8 +62,8 @@ function GetOnPrimaryIndex(TableName, KVObj, Done) {
   this.DynamoDB.getItem({
     TableName: TableName,
     Key: marshalItem(KVObj),
-    ReturnConsumedCapacity: this.Options.ConsumedCapacity,
-  }, (err, resp) => {
+    ReturnConsumedCapacity: this.Options.ConsumedCapacity
+  }, function(err, resp) {
     if (err) return Done(err);
     if (!resp.Item) return Done();
     return Done(null, unmarshalItem(resp.Item), _.pick(resp, [ 'ConsumedCapacity' ]));
@@ -74,14 +74,16 @@ function Query(TableName, IndexName, KVObj, Done) {
   this.DynamoDB.query({
     TableName: TableName,
     IndexName: IndexName,
-    KeyConditions: _.mapValues(KVObj, (v, k) => ({
-      ComparisonOperator: 'EQ',
-      AttributeValueList: [ marshal(v) ],
-    })),
-    ReturnConsumedCapacity: this.Options.ConsumedCapacity,
-  }, (err, awsResponse) => {
+    KeyConditions: _.mapValues(KVObj, function(v, k) {
+      return {
+        ComparisonOperator: 'EQ',
+        AttributeValueList: [ marshal(v) ]
+      }
+    }),
+    ReturnConsumedCapacity: this.Options.ConsumedCapacity
+  }, function(err, awsResponse) {
     if (err) return Done(err);
-    const allResults = awsResponse.Items.map(unmarshalItem);
+    const allResults = _.map(awsResponse.Items, unmarshalItem);
     const meta = _.pick(awsResponse, [ 'ConsumedCapacity', 'LastEvaluatedKey' ]);
     return Done(null, allResults, meta);
   })
