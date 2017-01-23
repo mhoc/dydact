@@ -1,14 +1,17 @@
-# v0.0.4 (Unreleased)
+# v0.0.5 (Unreleased)
 
 - Updating documents
 
-# v0.0.3 (Unreleased)
+# v0.0.4 (Unreleased)
 
 - `Get(5)` --> Paginated GSI query 
-- `Insert(3)` --> Basic document insertion
-- `Create(.)` --> Alias for `Insert`
 - `Remove(3)` --> Basic delete item by primary key
 - `Delete(.)` --> Alias for `Remove`
+- `Insert(3)` --> Insert document, error on overwrite
+
+# v0.0.3
+
+- `Put(3)` --> Insert document, overwrite on primary key
 
 # v0.0.2
 

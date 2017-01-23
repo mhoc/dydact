@@ -22,6 +22,7 @@ function Constructor(DynamoDB, Options) {
   this.DynamoDB = DynamoDB;
   this.Get = Get.bind(this);
   this.Read = Get.bind(this);
+  this.Put = Put.bind(this);
   return this;
 }
 
@@ -87,6 +88,18 @@ function Query(TableName, IndexName, KVObj, Done) {
     const meta = _.pick(awsResponse, [ 'ConsumedCapacity', 'LastEvaluatedKey' ]);
     return Done(null, allResults, meta);
   })
+}
+
+// ========================================================================
+// INSERTING
+// ========================================================================
+
+function Put(TableName, Document, Done) {
+  this.DynamoDB.putItem({
+    TableName: TableName,
+    Item: marshalItem(Document),
+    ReturnConsumedCapacity: this.Options.ConsumedCapacity,
+  }, Done);
 }
 
 // ========================================================================
