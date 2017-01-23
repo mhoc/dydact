@@ -2,6 +2,8 @@
 
 Insert operations are done with the `Insert()` function.
 
+- If you pass a key-value that contains a `Date` object, Dydact will serialize it into an ISO-8601 string. 
+
 # Single Item, No Overwrite
 
 _Insert a single item into a DynamoDB table._

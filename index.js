@@ -17,6 +17,9 @@ function Constructor(DynamoDB, Options) {
   if (!_.isBoolean(Options.ResolvePages)) {
     Options.ResolvePages = true;
   }
+  if (!_.isBoolean(Options.SerializeDates)) {
+    Options.SerializeDates = true;
+  }
   this.Options = Options;
   // Assign all the functions this library exports
   this.DynamoDB = DynamoDB;
@@ -95,6 +98,9 @@ function Query(TableName, IndexName, KVObj, Done) {
 // ========================================================================
 
 function Put(TableName, Document, Done) {
+  if (this.Options.SerializeDates) {
+    Document = SerializeDates(Document);
+  }
   this.DynamoDB.putItem({
     TableName: TableName,
     Item: marshalItem(Document),
@@ -105,6 +111,17 @@ function Put(TableName, Document, Done) {
 // ========================================================================
 // HELPERS
 // ========================================================================
+
+// Takes a document and returns the document with Dates serialized into 
+// ISO-8601 strings. Currently this only serializes on the first level of 
+// the object, and will not serialize nested dates within inner objects 
+// or strings.
+function SerializeDates(Doc) {
+  return _.mapValues(Doc, function(v, k) {
+    if (_.isDate(v)) return v.toISOString();
+    else return v;
+  });
+}
 
 // ========================================================================
 // EXPORT

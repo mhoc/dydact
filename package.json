@@ -1,6 +1,6 @@
 {
   "name": "dydact",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "convenience helpers around dynamodb crud operations",
   "main": "index.js",
   "scripts": {
