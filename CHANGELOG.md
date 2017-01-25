@@ -1,13 +1,14 @@
-# v0.0.5 (Unreleased)
-
-- Updating documents
-
-# v0.0.5 (Unreleased)
+# v.NEXT
 
 - `Get(5)` --> Paginated GSI query 
 - `Remove(3)` --> Basic delete item by primary key
 - `Delete(.)` --> Alias for `Remove`
 - `Insert(3)` --> Insert document, error on overwrite
+- Updating documents
+
+# v0.0.5
+
+- Change aws-sdk peer dependency from `~2.0` to `2.*`
 
 # v0.0.4
 

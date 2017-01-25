@@ -1,6 +1,6 @@
 {
   "name": "dydact",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "convenience helpers around dynamodb crud operations",
   "main": "index.js",
   "scripts": {
@@ -19,7 +19,7 @@
   "author": "mike@hockerman.com",
   "license": "MIT",
   "peerDependencies": {
-    "aws-sdk": "~2.0"
+    "aws-sdk": "2.*"
   },
   "dependencies": {
     "dynamodb-marshaler": "^2.0.0",
